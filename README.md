@@ -17,6 +17,9 @@ Sebelum melanjutkan setup di VM baru, pastikan file-file berikut telah dipindahk
 - File mount data yang telah dikompres, misalnya: `data_backup.tar.gz`
 - Kompresan file konfigurasi user dari `/home`, misalnya: `home_backup.tar.gz`
 
+Referensi video migrasi Docker secara umum:\
+👉 [Docker Migration YouTube Guide](https://youtu.be/QskmB4fb-uo?si=sWTQPROMhJvWvaGq)
+
 ---
 
 ### 1. Docker Container
