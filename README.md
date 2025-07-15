@@ -1,103 +1,165 @@
-open webui migration
+# Open WebUI Migration Guide
 
+Panduan ini menjelaskan langkah-langkah untuk memigrasikan sistem Open WebUI dari VM lama ke VM baru, termasuk container Docker, data mount, dan konfigurasi user.
 
+---
 
-yang harus dipindahkan
+## A. Persiapan di VM Lama
 
+### Daftar File yang Harus Dipindahkan ke VM Baru
 
+Sebelum melanjutkan setup di VM baru, pastikan file-file berikut telah dipindahkan dari VM lama:
 
-1. Docker Container
-2. Mount file
+- Semua file image hasil `docker save` (format `.tar`), misalnya:
+  - `openwebui_backup.tar`
+  - `litellm_backup.tar`
+  - `tika_backup.tar`
+- File mount data yang telah dikompres, misalnya: `data_backup.tar.gz`
+- Kompresan file konfigurasi user dari `/home`, misalnya: `home_backup.tar.gz`
 
+---
 
+### 1. Docker Container
 
-https://youtu.be/QskmB4fb-uo?si=sWTQPROMhJvWvaGq
+**a. Stop container terlebih dahulu:**
 
+```bash
+sudo docker stop <container-name>
+```
 
+**b. Commit container menjadi image baru:**
 
-1. Docker Container
-
-
-
-sebelum melakukan step ini disarankan stop container yang akan di migrasi
-
-
-
-untuk memindahkan docker container ke vm baru bisa menggunakan commit untuk membuat image baru yang akan di run di vm baru
-
-
-
+```bash
 sudo docker commit <container-name> <nama-image>
+```
 
+**c. Lihat semua image yang tersedia:**
 
-
-untuk image yang sudah atau pernah dibuat dapat dilihat di
-
-
-
+```bash
 sudo docker images
+```
 
+**d. Simpan image ke file **``**:**
 
+```bash
+sudo docker save <image-name> > <backup-name>.tar
+```
 
-untuk memindahkan images kita perlu save image ke .tar
+Ulangi langkah ini untuk semua image yang ingin dipindahkan (misalnya: `open-webui`, `litellm`, `tika`, dsb).
 
+---
 
+### 2. Mount File
 
-sudo docker save <image-name> > <backupname>.tar
+**a. Cek lokasi mount file dengan **``**:**
 
+```bash
+sudo docker inspect <container-name> | grep Mounts -A 20
+```
 
+**b. Setelah mengetahui lokasi (misalnya **``**), kompres datanya:**
 
-setelah semua images di save dan di compress ke .tar.gz. kita bisa memindahkan file ke vm baru
+```bash
+cd /mnt/sdb1
+tar -czvf data_backup.tar.gz data/
+```
 
+---
 
+### 3. Kompres Semua File di `/home`
 
-2\. Mount file
+Jika konfigurasi seperti file `.yaml` atau mount berada di direktori user, kompres seluruh isi direktori `/home`:
 
+```bash
+cd /home
+sudo tar -czvf home_backup.tar.gz <user>
+```
 
+---
 
-lokasi mount file dapat dilihat di docker inspect. setelah mengetahui lokasi (disini berada pada /mnt/sdb1/) data/ maka bisa compress file data/ dan pindahkan ke vm baru
+## B. Setup di VM Baru
 
+### 1. Restore Docker Images
 
+**a. Transfer semua file **``** ke VM baru, lalu load image:**
 
-untuk mempermudah letak file di /mnt/sdb1/ setelah berhasil di extract akan menjadi /mnt/sdb1/data
+```bash
+sudo docker load -i <backup-name>.tar
+```
 
+Ulangi untuk semua image yang telah disimpan.
 
+---
 
-3\. VM Baru
+### 2. Restore Mount File dan Folder `/home`
 
+**a. Ekstrak file data mount:**
 
+```bash
+cd /mnt/sdb1
+sudo tar -xzvf data_backup.tar.gz
+```
 
-setelah memindahkan mount file dan docker images, sekarang akan kita lakukan setup docker container untuk berjalan di vm baru.
+**b. Ekstrak folder **``**:**
 
+```bash
+cd /home
+sudo tar -xzvf home_backup.tar.gz
+```
 
+---
 
-extract file images dan lakukan docker load
+### 3. Buat Docker Network (jika container sebelumnya berada di jaringan yang sama)
 
+```bash
+sudo docker network create \
+  --driver bridge \
+  --subnet <ip>/24 \
+  --gateway <ip> \
+  my-network
+```
 
+Gantilah `<ip>` sesuai konfigurasi subnet dan gateway dari VM lama (misalnya: `172.18.0.0/24` dan `172.18.0.1`).
 
-sudo docker load -I <filename>.tar
+---
 
+### 4. Jalankan Container
 
+```bash
+# Jalankan litellm
+sudo docker run -d \
+  --name litellm \
+  --network my-network \
+  --ip <ip> \
+  -p 4000:4000 \
+  -v /home/<user>/litellm_config.yaml:/app/config.yaml \
+  litellmbackup:latest
 
-setelah berhasil akan ada nama backup imagesnya di docker images.
+# Jalankan open-webui
+sudo docker run -d \
+  --name open-webui \
+  --network my-network \
+  --ip <ip> \
+  -p 3001:8080 \
+  -v /mnt/sdb1/data/anythingllm1:/app/backend/data \
+  ouibackup:latest
 
+# Jalankan tika
+sudo docker run -d \
+  --name tika \
+  --network my-network \
+  --ip <ip> \
+  -p 9998:9998 \
+  tikabackup:latest
+```
 
+---
 
-lakukan sudo docker run untuk open-webui, tika, dan litellm.
+## Selesai 🎉
 
+Sekarang sistem Open WebUI telah berhasil dipindahkan ke VM baru, lengkap dengan konfigurasi container, data, dan environment-nya.
 
+---
 
-sudo docker run -d --name litellm   --network my-network   --ip 172.18.0.4   -p 4000:4000   -v /home/ali.ns/litellm\_config.yaml:/app/config.yaml   litellmbackup:latest
-
-
-
-sudo docker run -d --name open-webui   --network my-network   --ip 172.18.0.3   -p 3001:8080   -v /mnt/sdb1/data/anythingllm1:/app/backend/data   ouibackup:latest
-
-
-
-sudo docker run -d --name tika   --network my-network   --ip 172.18.0.2   -p 9998:9998   tikabackup:latest
-
-
-
-
+> **Catatan:** Pastikan semua IP dan path sesuai dengan konfigurasi masing-masing dan tidak terjadi konflik port atau IP saat menjalankan container.
 
