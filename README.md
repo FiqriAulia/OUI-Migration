@@ -39,7 +39,7 @@ sudo docker commit <container-name> <nama-image>
 sudo docker images
 ```
 
-**d. Simpan image ke file **``**:**
+**d. Simpan image ke file **`.tar`**:**
 
 ```bash
 sudo docker save <image-name> > <backup-name>.tar
@@ -51,13 +51,13 @@ Ulangi langkah ini untuk semua image yang ingin dipindahkan (misalnya: `open-web
 
 ### 2. Mount File
 
-**a. Cek lokasi mount file dengan **``**:**
+**a. Cek lokasi mount file dengan **`docker inspect`**:**
 
 ```bash
 sudo docker inspect <container-name> | grep Mounts -A 20
 ```
 
-**b. Setelah mengetahui lokasi (misalnya **``**), kompres datanya:**
+**b. Setelah mengetahui lokasi (misalnya **`/mnt/sdb1/data`**), kompres datanya:**
 
 ```bash
 cd /mnt/sdb1
@@ -81,7 +81,7 @@ sudo tar -czvf home_backup.tar.gz <user>
 
 ### 1. Restore Docker Images
 
-**a. Transfer semua file **``** ke VM baru, lalu load image:**
+**a. Transfer semua file **`.tar`** ke VM baru, lalu load image:**
 
 ```bash
 sudo docker load -i <backup-name>.tar
@@ -100,7 +100,7 @@ cd /mnt/sdb1
 sudo tar -xzvf data_backup.tar.gz
 ```
 
-**b. Ekstrak folder **``**:**
+**b. Ekstrak folder **`/home`**:**
 
 ```bash
 cd /home
