@@ -163,3 +163,12 @@ Sekarang sistem Open WebUI telah berhasil dipindahkan ke VM baru, lengkap dengan
 
 > **Catatan:** Pastikan semua IP dan path sesuai dengan konfigurasi masing-masing dan tidak terjadi konflik port atau IP saat menjalankan container.
 
+---
+
+## Migrasi Hanya Chat atau Konfigurasi
+
+Jika Anda hanya ingin memigrasi riwayat chat atau konfigurasi tanpa memindahkan seluruh sistem, Anda dapat mengekspor dan mengimpor database secara langsung.
+
+Lihat dokumentasi resmi Open WebUI:  
+👉 [Exporting Database - Open WebUI](https://docs.openwebui.com/tutorials/database#exporting-database)
+
